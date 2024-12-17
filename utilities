@@ -1,0 +1,15 @@
+# utilities.py
+
+from datetime import datetime
+
+def calculate_amortization(start_date, current_date, value):
+    # fraction of year passed based on a 365-day year
+    fraction_year_passed = (current_date - start_date).days / 365
+    months_passed = fraction_year_passed * 12
+    return max(0, value * (12 - months_passed) / 12)
+
+def validate_data(main_data, column_names):
+    """Ensure required columns exist in the data."""
+    missing_columns = [col for col in column_names if col not in main_data.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns: {', '.join(missing_columns)}")
