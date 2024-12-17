@@ -1,0 +1,64 @@
+# template_filler.py
+
+import os
+from datetime import datetime
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Font
+
+from constants import (TEMPLATE_FILE_PATH, OUTPUT_FOLDER, HEADER_MAPPING)
+
+
+def fill_template(date_str, fund_id, data):
+    """
+    Fill the Excel template for a given fund_id and data.
+
+    :param date_str: Selected date as a 'YYYY-MM-DD' string.
+    :param fund_id: The fund identifier.
+    :param data: A pandas DataFrame containing processed data rows for this fund.
+    """
+    if not os.path.exists(TEMPLATE_FILE_PATH):
+        raise FileNotFoundError(f"Template file not found: {TEMPLATE_FILE_PATH}")
+
+    workbook = load_workbook(TEMPLATE_FILE_PATH)
+    sheet = workbook.active
+
+    if hasattr(workbook, "remove_external_links"):
+        workbook.remove_external_links()
+
+    sheet["C12"] = f"DAILY_BMO - {fund_id} Lon_IRS"
+    sheet["C14"] = date_str
+
+    sheet.title = f"BMO - {fund_id}"
+
+    headers = [sheet.cell(row=18, column=col).value for col in range(2, sheet.max_column + 1)]
+    start_row = 18
+
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    default_font = Font(size=8)
+    currency_format = "#,##0.00"
+    percentage_format = "0.000%"
+
+    current_row = start_row  # Start from the header row
+    for _, row in data.iterrows():
+        sheet.insert_rows(current_row + 1)  # Insert new row after the header
+        for col_idx, header in enumerate(headers):
+            mapped_header = HEADER_MAPPING.get(header, header)
+            value = row.get(mapped_header, "")
+            cell = sheet.cell(row=current_row + 1, column=col_idx + 2)
+            cell.value = value
+
+            cell.alignment = center_alignment
+            cell.font = default_font
+
+            if header in ["Notional", "Notional 2"]:
+                cell.number_format = currency_format
+            elif header in ["Pay Rate", "BID", "OFFER"]:
+                cell.number_format = percentage_format
+        current_row += 1  # Move to the next row
+
+    formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y%m%d")
+    excel_output_path = os.path.join(
+        OUTPUT_FOLDER,
+        f"VAL-{formatted_date}-DAILY_CLIENT {fund_id}_Lon_IRS.xlsx"
+    )
+    workbook.save(excel_output_path)
