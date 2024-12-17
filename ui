@@ -5,18 +5,28 @@ from tkinter import ttk, messagebox
 import pandas as pd
 from tkcalendar import Calendar
 
-from constants import MAIN_FILE_PATH
+from constants import MAIN_FILE_PATH, CLIENT_LIST_FILE
 from popup import Popup
+from treeview_frame import TreeViewFrame
 
 class MainUI:
     def __init__(self, root, statement_generator):
         self.root = root
         self.statement_generator = statement_generator
         self.root.title("Statement Generator")
-        self.main_data = self.load_main_file()
 
+        # Load main data and client list data
+        self.main_data = self.load_main_file()
+        self.client_list_data = self.load_client_list()
+
+        # StringVar for selected file display
+        self.selected_file_name = tk.StringVar(value="No file selected")
+
+        # Notebook for tabs
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True)
+
+        # Create all tabs
         self.create_tabs()
 
     # --- File Operations ---
@@ -30,25 +40,35 @@ class MainUI:
     def save_main_file(self):
         try:
             self.main_data.to_excel(MAIN_FILE_PATH, index=False)
-            messagebox.showinfo("Success", "File saved successfully.")
+            messagebox.showinfo("Success", "Main file saved successfully.")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save file: {e}")
+            messagebox.showerror("Error", f"Failed to save main file: {e}")
 
-    def refresh_main_file(self):
-        self.main_data = self.load_main_file()
-        self.populate_treeview()
+    def load_client_list(self):
+        try:
+            return pd.read_excel(CLIENT_LIST_FILE)
+        except FileNotFoundError:
+            messagebox.showerror("Error", f"Client list file not found: {CLIENT_LIST_FILE}")
+            self.root.destroy()
 
-    # --- Row Operations ---
-    def add_new_row(self):
+    def save_client_list(self):
+        try:
+            self.client_list_data.to_excel(CLIENT_LIST_FILE, index=False)
+            messagebox.showinfo("Success", "Client list saved successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save client list: {e}")
+
+    # --- Row Operations for Main File ---
+    def add_new_row_main(self):
         def save_new_row(data):
             new_row = pd.DataFrame([data], columns=self.main_data.columns)
             self.main_data = pd.concat([self.main_data, new_row], ignore_index=True)
             self.save_main_file()
-            self.populate_treeview()
+            self.populate_main_treeview()
 
-        Popup(self.root, "Add New Row", self.main_data.columns, on_save=save_new_row)
+        Popup(self.root, "Add New Row (Main File)", self.main_data.columns, on_save=save_new_row)
 
-    def edit_selected_row(self):
+    def edit_selected_row_main(self):
         selected_item = self.tree.focus()
         if not selected_item:
             messagebox.showerror("Error", "No row selected.")
@@ -60,31 +80,65 @@ class MainUI:
         def save_edited_row(data):
             self.main_data.iloc[row_index] = data
             self.save_main_file()
-            self.populate_treeview()
+            self.populate_main_treeview()
 
-        Popup(self.root, "Edit Selected Row", self.main_data.columns, initial_values, on_save=save_edited_row)
+        Popup(self.root, "Edit Row (Main File)", self.main_data.columns, initial_values, on_save=save_edited_row)
+
+    # --- Row Operations for Client List ---
+    def add_new_client(self):
+        def save_new_client(data):
+            new_row = pd.DataFrame([data], columns=self.client_list_data.columns)
+            self.client_list_data = pd.concat([self.client_list_data, new_row], ignore_index=True)
+            self.save_client_list()
+            self.populate_client_list_treeview()
+
+        Popup(self.root, "Add New Client", self.client_list_data.columns, on_save=save_new_client)
+
+    def edit_selected_client(self):
+        selected_item = self.client_tree.focus()
+        if not selected_item:
+            messagebox.showerror("Error", "No row selected.")
+            return
+
+        row_index = int(self.client_tree.index(selected_item))
+        initial_values = self.client_list_data.iloc[row_index].to_dict()
+
+        def save_edited_client(data):
+            self.client_list_data.iloc[row_index] = data
+            self.save_client_list()
+            self.populate_client_list_treeview()
+
+        Popup(self.root, "Edit Client", self.client_list_data.columns, initial_values, on_save=save_edited_client)
 
     # --- UI Components ---
     def create_tabs(self):
         self.create_process_files_tab()
         self.create_edit_main_file_tab()
+        self.create_client_list_tab()
 
     def create_process_files_tab(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Process Files")
 
-        tk.Label(frame, text="Date:").grid(row=0, column=0, padx=10, pady=5)
-        self.date_picker = Calendar(frame, selectmode="day", date_pattern="yyyy-mm-dd")
-        self.date_picker.grid(row=0, column=1, padx=10, pady=5)
+        # Label for displaying the selected file name
+        self.file_label = tk.Label(frame, textvariable=self.selected_file_name, fg="blue", font=("Arial", 10, "italic"))
+        self.file_label.grid(row=0, column=0, columnspan=2, pady=5, sticky="w")
 
-        tk.Button(frame, text="Find File", command=self.find_file).grid(row=1, column=0, padx=10, pady=10)
-        tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=1, column=1, padx=10, pady=10)
+        tk.Label(frame, text="Date:").grid(row=1, column=0, padx=10, pady=5)
+        self.date_picker = Calendar(frame, selectmode="day", date_pattern="yyyy-mm-dd")
+        self.date_picker.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Button(frame, text="Find File", command=self.find_file).grid(row=2, column=0, padx=10, pady=10)
+        tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=2, column=1, padx=10, pady=10)
 
     def find_file(self):
         try:
             msg = self.statement_generator.select_moved_file()
+            file_name = self.statement_generator.moved_file_path.split("\\")[-1]
+            self.selected_file_name.set(f"Selected File: {file_name}")
             messagebox.showinfo("File", msg)
         except Exception as e:
+            self.selected_file_name.set("No file selected")
             messagebox.showerror("Error", str(e))
 
     def run_process_files(self):
@@ -102,28 +156,38 @@ class MainUI:
         button_frame.pack(fill="x", padx=5, pady=5)
 
         ttk.Button(button_frame, text="Save Changes", command=self.save_main_file).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Refresh", command=self.refresh_main_file).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Add Row", command=self.add_new_row).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Edit Row", command=self.edit_selected_row).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Add Row", command=self.add_new_row_main).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Edit Row", command=self.edit_selected_row_main).pack(side="left", padx=5)
 
-        self.create_treeview(frame)
+        self.create_main_treeview(frame)
 
-    def create_treeview(self, frame):
-        self.tree = ttk.Treeview(frame, show="headings", height=15)
-        self.tree["columns"] = list(self.main_data.columns)
+    def create_client_list_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Client List")
 
-        for col in self.main_data.columns:
-            self.tree.heading(col, text=col, anchor="w")
-            self.tree.column(col, width=120, anchor="w")
+        button_frame = ttk.Frame(frame)
+        button_frame.pack(fill="x", padx=5, pady=5)
 
-        scroll_y = ttk.Scrollbar(frame, orient="vertical", command=self.tree.yview)
-        scroll_y.pack(side="right", fill="y")
-        self.tree.configure(yscrollcommand=scroll_y.set)
+        ttk.Button(button_frame, text="Save Changes", command=self.save_client_list).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Add Client", command=self.add_new_client).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Edit Client", command=self.edit_selected_client).pack(side="left", padx=5)
 
-        self.tree.pack(fill="both", expand=True)
-        self.populate_treeview()
+        self.create_client_list_treeview(frame)
 
-    def populate_treeview(self):
-        self.tree.delete(*self.tree.get_children())
-        for _, row in self.main_data.iterrows():
-            self.tree.insert("", "end", values=list(row))
+    def create_main_treeview(self, frame):
+        # Create the TreeViewFrame for the Main File
+        self.main_treeview_frame = TreeViewFrame(frame, self.main_data.columns)
+        self.tree = self.main_treeview_frame.get_treeview()
+        self.populate_main_treeview()
+
+    def create_client_list_treeview(self, frame):
+        # Create the TreeViewFrame for the Client List
+        self.client_treeview_frame = TreeViewFrame(frame, self.client_list_data.columns)
+        self.client_tree = self.client_treeview_frame.get_treeview()
+        self.populate_client_list_treeview()
+
+    def populate_main_treeview(self):
+        self.main_treeview_frame.populate(self.main_data)
+
+    def populate_client_list_treeview(self):
+        self.client_treeview_frame.populate(self.client_list_data)
