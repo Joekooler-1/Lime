@@ -17,8 +17,10 @@ class MainUI:
         self.main_data = self.load_main_file()
         self.client_list_data = self.load_client_list()
 
+        self.selected_file_name = tk.StringVar(value="No file selected")  # Dynamic label for selected file
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True)
+
         self.create_tabs()
 
     # --- File Operations ---
@@ -112,18 +114,25 @@ class MainUI:
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Process Files")
 
-        tk.Label(frame, text="Date:").grid(row=0, column=0, padx=10, pady=5)
-        self.date_picker = Calendar(frame, selectmode="day", date_pattern="yyyy-mm-dd")
-        self.date_picker.grid(row=0, column=1, padx=10, pady=5)
+        # Label for displaying the selected file name
+        self.file_label = tk.Label(frame, textvariable=self.selected_file_name, fg="blue", font=("Arial", 10, "italic"))
+        self.file_label.grid(row=0, column=0, columnspan=2, pady=5, sticky="w")
 
-        tk.Button(frame, text="Find File", command=self.find_file).grid(row=1, column=0, padx=10, pady=10)
-        tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=1, column=1, padx=10, pady=10)
+        tk.Label(frame, text="Date:").grid(row=1, column=0, padx=10, pady=5)
+        self.date_picker = Calendar(frame, selectmode="day", date_pattern="yyyy-mm-dd")
+        self.date_picker.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Button(frame, text="Find File", command=self.find_file).grid(row=2, column=0, padx=10, pady=10)
+        tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=2, column=1, padx=10, pady=10)
 
     def find_file(self):
         try:
             msg = self.statement_generator.select_moved_file()
+            file_name = self.statement_generator.moved_file_path.split("\\")[-1]
+            self.selected_file_name.set(f"Selected File: {file_name}")
             messagebox.showinfo("File", msg)
         except Exception as e:
+            self.selected_file_name.set("No file selected")
             messagebox.showerror("Error", str(e))
 
     def run_process_files(self):
