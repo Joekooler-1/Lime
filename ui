@@ -1,0 +1,129 @@
+# ui.py
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import pandas as pd
+from tkcalendar import Calendar
+
+from constants import MAIN_FILE_PATH
+from popup import Popup
+
+class MainUI:
+    def __init__(self, root, statement_generator):
+        self.root = root
+        self.statement_generator = statement_generator
+        self.root.title("Statement Generator")
+        self.main_data = self.load_main_file()
+
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill="both", expand=True)
+        self.create_tabs()
+
+    # --- File Operations ---
+    def load_main_file(self):
+        try:
+            return pd.read_excel(MAIN_FILE_PATH)
+        except FileNotFoundError:
+            messagebox.showerror("Error", f"Main file not found: {MAIN_FILE_PATH}")
+            self.root.destroy()
+
+    def save_main_file(self):
+        try:
+            self.main_data.to_excel(MAIN_FILE_PATH, index=False)
+            messagebox.showinfo("Success", "File saved successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save file: {e}")
+
+    def refresh_main_file(self):
+        self.main_data = self.load_main_file()
+        self.populate_treeview()
+
+    # --- Row Operations ---
+    def add_new_row(self):
+        def save_new_row(data):
+            new_row = pd.DataFrame([data], columns=self.main_data.columns)
+            self.main_data = pd.concat([self.main_data, new_row], ignore_index=True)
+            self.save_main_file()
+            self.populate_treeview()
+
+        Popup(self.root, "Add New Row", self.main_data.columns, on_save=save_new_row)
+
+    def edit_selected_row(self):
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showerror("Error", "No row selected.")
+            return
+
+        row_index = int(self.tree.index(selected_item))
+        initial_values = self.main_data.iloc[row_index].to_dict()
+
+        def save_edited_row(data):
+            self.main_data.iloc[row_index] = data
+            self.save_main_file()
+            self.populate_treeview()
+
+        Popup(self.root, "Edit Selected Row", self.main_data.columns, initial_values, on_save=save_edited_row)
+
+    # --- UI Components ---
+    def create_tabs(self):
+        self.create_process_files_tab()
+        self.create_edit_main_file_tab()
+
+    def create_process_files_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Process Files")
+
+        tk.Label(frame, text="Date:").grid(row=0, column=0, padx=10, pady=5)
+        self.date_picker = Calendar(frame, selectmode="day", date_pattern="yyyy-mm-dd")
+        self.date_picker.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Button(frame, text="Find File", command=self.find_file).grid(row=1, column=0, padx=10, pady=10)
+        tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=1, column=1, padx=10, pady=10)
+
+    def find_file(self):
+        try:
+            msg = self.statement_generator.select_moved_file()
+            messagebox.showinfo("File", msg)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def run_process_files(self):
+        try:
+            msg = self.statement_generator.process_files()
+            messagebox.showinfo("Success", msg)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def create_edit_main_file_tab(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Edit Main File")
+
+        button_frame = ttk.Frame(frame)
+        button_frame.pack(fill="x", padx=5, pady=5)
+
+        ttk.Button(button_frame, text="Save Changes", command=self.save_main_file).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Refresh", command=self.refresh_main_file).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Add Row", command=self.add_new_row).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Edit Row", command=self.edit_selected_row).pack(side="left", padx=5)
+
+        self.create_treeview(frame)
+
+    def create_treeview(self, frame):
+        self.tree = ttk.Treeview(frame, show="headings", height=15)
+        self.tree["columns"] = list(self.main_data.columns)
+
+        for col in self.main_data.columns:
+            self.tree.heading(col, text=col, anchor="w")
+            self.tree.column(col, width=120, anchor="w")
+
+        scroll_y = ttk.Scrollbar(frame, orient="vertical", command=self.tree.yview)
+        scroll_y.pack(side="right", fill="y")
+        self.tree.configure(yscrollcommand=scroll_y.set)
+
+        self.tree.pack(fill="both", expand=True)
+        self.populate_treeview()
+
+    def populate_treeview(self):
+        self.tree.delete(*self.tree.get_children())
+        for _, row in self.main_data.iterrows():
+            self.tree.insert("", "end", values=list(row))
