@@ -78,7 +78,21 @@ class MainUI:
 
         Popup(self.root, "Edit Row (Main File)", self.main_data.columns, initial_values, on_save=save_edited_row)
 
-    # --- Row Operations for Client List ---
+    # --- Open Excel File ---
+    def open_main_file(self):
+        if os.path.exists(MAIN_FILE_PATH):
+            os.startfile(MAIN_FILE_PATH)  # Opens in default Excel app
+        else:
+            messagebox.showerror("Error", "Main file not found.")
+
+    def open_client_list_file(self):
+        if os.path.exists(CLIENT_LIST_FILE):
+            os.startfile(CLIENT_LIST_FILE)  # Opens in default Excel app
+        else:
+            messagebox.showerror("Error", "Client list file not found.")
+
+
+ # --- Row Operations for Client List ---
     def add_new_client(self):
         def save_new_client(data):
             new_row = pd.DataFrame([data], columns=self.client_list_data.columns)
@@ -152,6 +166,7 @@ class MainUI:
         ttk.Button(button_frame, text="Save Changes", command=self.save_main_file).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Add Row", command=self.add_new_row_main).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Edit Row", command=self.edit_selected_row_main).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Open Trades File", command=self.open_main_file).pack(side="left", padx=5)  # Open Main File
 
         self.create_main_treeview(frame)
 
@@ -165,6 +180,7 @@ class MainUI:
         ttk.Button(button_frame, text="Save Changes", command=self.save_client_list).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Add Client", command=self.add_new_client).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Edit Client", command=self.edit_selected_client).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Open DL File", command=open_client_list_file).pack(side="left", padx=5)  # Open DL
 
         self.create_client_list_treeview(frame)
 
