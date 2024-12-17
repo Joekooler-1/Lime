@@ -165,11 +165,9 @@ class MainUI:
             row=1, column=2, padx=20, pady=5, sticky="w")
 
         # Unmatched Trade IDs Display
-        tk.Label(frame, text="Unmatched Trade IDs:", font=("Arial", 10, "bold")).grid(
-            row=3, column=0, columnspan=3, pady=5, sticky="w")
-
+    
         self.unmatched_ids_box = tk.Text(frame, wrap="word", height=5, width=50, state="disabled", bg="#f0f0f0")
-        self.unmatched_ids_box.grid(row=4, column=0, columnspan=3, padx=10, pady=5)
+        self.unmatched_ids_box.grid(row=1, column=4, columnspan=3, padx=10, pady=5)
 
     def find_file(self):
         try:
@@ -178,6 +176,7 @@ class MainUI:
             self.selected_file_name.set(f"Selected File: {file_name}")
 
             self.unmatched_count_text.set(f"Unmatched Trade IDs: {self.statement_generator.unmatched_count}")
+            self.display_unmatched_ids(self.statement_generator.unmatched_ids)
             messagebox.showinfo("File", msg)
         except Exception as e:
             self.selected_file_name.set("No file selected")
