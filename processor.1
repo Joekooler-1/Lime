@@ -14,6 +14,7 @@ class Processor:
         self.date_picker = date_picker  # Calendar widget reference
         self.moved_file_path = None  # Path to the selected moved file
         self.unmatched_count = 0  # To store unmatched TRADEIDENTIFIER count
+        self.unmatched_ids = [] 
 
     def select_moved_file(self):
         """Select the moved file based on the date and check in primary and secondary folders."""
@@ -52,6 +53,7 @@ class Processor:
         # Find unmatched trade IDs
         unmatched_trade_ids = moved_trade_ids - main_trade_ids
         self.unmatched_count = len(unmatched_trade_ids)  # Store the unmatched count
+        self.unmatched_ids = list(unmatched_trade_ids)   # Store the ID's
 
     def process_files(self):
         """Process the input file and generate statements."""
