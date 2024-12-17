@@ -6,6 +6,8 @@ SECONDARY_FOLDER = r"C:\folder\secondary"
 MAIN_FILE_PATH = r"C:\folder\main_file.xlsx"
 TEMPLATE_FILE_PATH = r"C:\folder\template.xlsx"
 OUTPUT_FOLDER = r"C:\folder\output"
+CLIENT_LIST_FILE = r"C:\folder\client_list.xlsx"  
+
 
 HEADER_MAPPING = {
     "Trade ID": "TRADEIDENTIFIER",
