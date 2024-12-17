@@ -1,0 +1,32 @@
+# constants.py
+
+# --- Editable Constants ---
+PRIMARY_FOLDER = r"C:\folder\primary"
+SECONDARY_FOLDER = r"C:\folder\secondary"
+MAIN_FILE_PATH = r"C:\folder\main_file.xlsx"
+TEMPLATE_FILE_PATH = r"C:\folder\template.xlsx"
+OUTPUT_FOLDER = r"C:\folder\output"
+
+HEADER_MAPPING = {
+    "Trade ID": "TRADEIDENTIFIER",
+    "Adjusted P&L": "Adjusted_P&L",
+    "Bid": "Bid",
+    "Offer": "Offer",
+    "Trade Date": "TRADE DATE",
+    "SPREAD": "SPREAD"
+}
+
+DEFAULT_VALUES = {
+    "Sub Product": "CRA SWAP",
+    "PAYER": "CHANGE",
+    "Pay": "Float",
+    "Pay Frequency": "1MO",
+    "Pay CCY": "USD",
+    "Receive": "Float",
+    "Receive Index": "USD SOFR",
+    "Receive Rate": "0.3",
+    "Receive Frequency": "1MO",
+    "Receive CCY": "USD"
+}
+
+DATE_FORMAT = "%Y-%m-%d"
