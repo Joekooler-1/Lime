@@ -1,1 +1,72 @@
 
+# treeview_frame.py
+
+import tkinter as tk
+from tkinter import ttk
+
+class TreeViewFrame:
+    def __init__(self, parent, columns, height=15):
+        """
+        Initialize the TreeViewFrame with scrollbars and Treeview.
+        
+        Args:
+            parent (tk.Widget): The parent widget where the TreeViewFrame will be placed.
+            columns (list): List of column names for the Treeview.
+            height (int): Height of the Treeview in rows.
+        """
+        # Frame to hold the Treeview and scrollbars
+        self.frame = ttk.Frame(parent)
+        self.frame.pack(fill="both", expand=True)
+
+        # Create the Treeview
+        self.tree = ttk.Treeview(self.frame, show="headings", height=height)
+        self.tree["columns"] = columns
+
+        for col in columns:
+            self.tree.heading(col, text=col, anchor="w")
+            self.tree.column(col, width=120, anchor="w")
+
+        # Vertical Scrollbar
+        scroll_y = ttk.Scrollbar(self.frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y")
+
+        # Horizontal Scrollbar
+        scroll_x = ttk.Scrollbar(self.frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(xscrollcommand=scroll_x.set)
+        scroll_x.pack(side="bottom", fill="x")
+
+        # Pack the Treeview
+        self.tree.pack(fill="both", expand=True)
+
+    def populate(self, data):
+        """
+        Populate the Treeview with data.
+        
+        Args:
+            data (pd.DataFrame): A pandas DataFrame containing the data to display.
+        """
+        # Clear existing data
+        self.tree.delete(*self.tree.get_children())
+
+        # Insert new data
+        for _, row in data.iterrows():
+            self.tree.insert("", "end", values=list(row))
+
+    def get_treeview(self):
+        """
+        Return the Treeview widget for further use.
+        
+        Returns:
+            ttk.Treeview: The Treeview widget.
+        """
+        return self.tree
+
+    def get_frame(self):
+        """
+        Return the parent frame containing the Treeview and scrollbars.
+        
+        Returns:
+            ttk.Frame: The frame containing the Treeview.
+        """
+        return self.frame
