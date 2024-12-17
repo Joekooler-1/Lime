@@ -4,14 +4,16 @@ import tkinter as tk
 from tkinter import messagebox
 from constants import DEFAULT_VALUES
 
+
 class Popup:
     """Reusable popup class for adding or editing rows."""
+
     def __init__(self, parent, title, columns, initial_values=None, on_save=None):
         self.parent = parent
         self.columns = columns
         self.initial_values = initial_values or {}
         self.on_save = on_save
-        
+
         self.popup = tk.Toplevel(parent)
         self.popup.title(title)
         self.popup.geometry("400x600")
@@ -21,13 +23,24 @@ class Popup:
             tk.Label(self.popup, text=col).grid(row=i, column=0, padx=10, pady=5, sticky="w")
 
             value = self.initial_values.get(col, DEFAULT_VALUES.get(col, ""))
-            entry = tk.Entry(self.popup, width=30)
+            entry = tk.Entry(self.popup, width=20)  # Set initial minimum size
             entry.insert(0, value)
             entry.grid(row=i, column=1, padx=10, pady=5)
+
+            # Bind event to dynamically resize text box based on text length
+            entry.bind("<KeyRelease>", lambda event, e=entry: self.adjust_entry_size(e))
+            self.adjust_entry_size(entry)  # Adjust size initially based on existing text
+
             self.entries[col] = entry
 
         save_button = tk.Button(self.popup, text="Save", command=self.save_data)
         save_button.grid(row=len(self.columns), column=0, columnspan=2, pady=10)
+
+    def adjust_entry_size(self, entry):
+        """Dynamically adjust the width of the entry box based on text length."""
+        text_length = len(entry.get())
+        min_size = 20  # Minimum size in characters
+        entry.config(width=max(min_size, text_length + 1))  # Adjust width dynamically
 
     def save_data(self):
         try:
