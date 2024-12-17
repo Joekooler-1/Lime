@@ -176,9 +176,12 @@ class MainUI:
             self.tree.heading(col, text=col, anchor="w")
             self.tree.column(col, width=120, anchor="w")
 
+        # Scrollbars
         scroll_y = ttk.Scrollbar(frame, orient="vertical", command=self.tree.yview)
         scroll_y.pack(side="right", fill="y")
-        self.tree.configure(yscrollcommand=scroll_y.set)
+        scroll_x = ttk.Scrollbar(frame, orient="horizontal", command=self.tree.xview)
+        scroll_x.pack(side="bottom", fill="x")
+        self.tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
 
         self.tree.pack(fill="both", expand=True)
         self.populate_main_treeview()
@@ -191,9 +194,12 @@ class MainUI:
             self.client_tree.heading(col, text=col, anchor="w")
             self.client_tree.column(col, width=120, anchor="w")
 
+        # Scrollbars
         scroll_y = ttk.Scrollbar(frame, orient="vertical", command=self.client_tree.yview)
         scroll_y.pack(side="right", fill="y")
-        self.client_tree.configure(yscrollcommand=scroll_y.set)
+        scroll_x = ttk.Scrollbar(frame, orient="horizontal", command=self.client_tree.xview)
+        scroll_x.pack(side="bottom", fill="x")
+        self.client_tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
 
         self.client_tree.pack(fill="both", expand=True)
         self.populate_client_list_treeview()
