@@ -158,11 +158,17 @@ class MainUI:
         tk.Button(frame, text="Find File", command=self.find_file).grid(row=2, column=0, padx=10, pady=10)
         tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=2, column=1, padx=10, pady=10)
 
+        # Unmatched Trade IDs Label (to the right of the Calendar)
+        tk.Label(frame, textvariable=self.unmatched_count_text, font=("Arial", 10)).grid(
+            row=1, column=2, padx=20, pady=5, sticky="w")
+
     def find_file(self):
         try:
             msg = self.statement_generator.select_moved_file()
             file_name = self.statement_generator.moved_file_path.split("\\")[-1]
             self.selected_file_name.set(f"Selected File: {file_name}")
+
+            self.unmatched_count_text.set(f"Unmatched Trade IDs: {self.statement_generator.unmatched_count}")
             messagebox.showinfo("File", msg)
         except Exception as e:
             self.selected_file_name.set("No file selected")
