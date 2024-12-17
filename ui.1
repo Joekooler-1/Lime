@@ -19,6 +19,8 @@ class MainUI:
         self.client_list_data = self.load_client_list()
 
         self.selected_file_name = tk.StringVar(value="No file selected")  # Dynamic label for selected file
+        self.unmatched_count_text = tk.StringVar(value="Unmatched Trade IDs: 0")
+        self.unmatched_ids_text = tk.StringVar(value="")  # Text for unmatched IDs display
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True)
 
@@ -162,6 +164,13 @@ class MainUI:
         tk.Label(frame, textvariable=self.unmatched_count_text, font=("Arial", 10)).grid(
             row=1, column=2, padx=20, pady=5, sticky="w")
 
+        # Unmatched Trade IDs Display
+        tk.Label(frame, text="Unmatched Trade IDs:", font=("Arial", 10, "bold")).grid(
+            row=3, column=0, columnspan=3, pady=5, sticky="w")
+
+        self.unmatched_ids_box = tk.Text(frame, wrap="word", height=5, width=50, state="disabled", bg="#f0f0f0")
+        self.unmatched_ids_box.grid(row=4, column=0, columnspan=3, padx=10, pady=5)
+
     def find_file(self):
         try:
             msg = self.statement_generator.select_moved_file()
@@ -174,6 +183,21 @@ class MainUI:
             self.selected_file_name.set("No file selected")
             messagebox.showerror("Error", str(e))
 
+    def display_unmatched_ids(self, unmatched_ids):
+        """Display unmatched trade IDs in the text box."""
+        self.unmatched_ids_box.config(state="normal")  # Enable editing
+        self.unmatched_ids_box.delete("1.0", "end")  # Clear previous text
+
+        if unmatched_ids:
+            display_text = "\n".join(unmatched_ids)
+        else:
+            display_text = "No unmatched TRADEIDENTIFIERs found."
+
+        self.unmatched_ids_box.insert("1.0", display_text)
+        self.unmatched_ids_box.config(state="disabled")  # Disable editing again
+    
+    
+    
     def run_process_files(self):
         try:
             msg = self.statement_generator.process_files()
