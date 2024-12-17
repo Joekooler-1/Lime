@@ -79,7 +79,7 @@ class MainUI:
 
         Popup(self.root, "Edit Row (Main File)", self.main_data.columns, initial_values, on_save=save_edited_row)
 
-    # --- Open Excel File ---
+    # --- Open and reload Excel File ---
     def open_main_file(self):
         if os.path.exists(MAIN_FILE_PATH):
             os.startfile(MAIN_FILE_PATH)  # Opens in default Excel app
@@ -91,6 +91,24 @@ class MainUI:
             os.startfile(CLIENT_LIST_FILE)  # Opens in default Excel app
         else:
             messagebox.showerror("Error", "Client list file not found.")
+
+
+    def reload_main_file(self):
+        try:
+            self.main_data = self.load_main_file()
+            self.populate_main_treeview()
+            messagebox.showinfo("Reload", "Main file reloaded successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to reload main file: {e}")
+
+
+    def reload_client_list(self):
+        try:
+            self.client_list_data = self.load_client_list()
+            self.populate_client_list_treeview()
+            messagebox.showinfo("Reload", "Client list reloaded successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to reload client list: {e}")
 
 
  # --- Row Operations for Client List ---
@@ -165,6 +183,7 @@ class MainUI:
         button_frame.pack(fill="x", padx=5, pady=5)
 
         ttk.Button(button_frame, text="Save Changes", command=self.save_main_file).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Reload File", command=self.reload_main_file).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Add Row", command=self.add_new_row_main).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Edit Row", command=self.edit_selected_row_main).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Open Trades File", command=self.open_main_file).pack(side="left", padx=5)  # Open Main File
@@ -179,6 +198,7 @@ class MainUI:
         button_frame.pack(fill="x", padx=5, pady=5)
 
         ttk.Button(button_frame, text="Save Changes", command=self.save_client_list).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Reload File", command=self.reload_client_list).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Add Client", command=self.add_new_client).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Edit Client", command=self.edit_selected_client).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Open DL File", command=open_client_list_file).pack(side="left", padx=5)  # Open DL
