@@ -1,0 +1,99 @@
+# email_attachments.py
+
+import os
+import win32com.client as win32
+import pandas as pd
+from datetime import datetime
+from tkinter import messagebox
+
+
+class EmailAttachmentHandler:
+    def __init__(self, client_list_data, output_folder):
+        """
+        Initialize the email handler.
+
+        :param output_folder: Path to the folder containing generated files.
+        :param client_list_data: DataFrame containing client list details.
+        """
+        self.output_folder = output_folder  # Use the OUTPUT_FOLDER from constants.py
+        self.client_list_data = client_list_data  # Client list data as a DataFrame
+
+    def get_files_for_date(self, selected_date):
+        """
+        Get files from the output folder matching the selected date.
+
+        :param selected_date: Selected date in "yyyy-mm-dd" format.
+        :return: List of file paths matching the selected date.
+        """
+        if not os.path.exists(self.output_folder):
+            raise FileNotFoundError(f"Output folder not found: {self.output_folder}")
+
+        formatted_date = datetime.strptime(selected_date, "%Y-%m-%d").strftime("%Y%m%d")
+        files = [
+            os.path.join(self.output_folder, f)
+            for f in os.listdir(self.output_folder)
+            if formatted_date in f
+        ]
+
+        if not files:
+            raise FileNotFoundError(f"No files found for the selected date: {selected_date}")
+
+        return files
+
+    def get_client_details_by_fund_id(self, fund_id):
+        """
+        Find client details using the FUND ID from the Client List.
+
+        :param fund_id: The FUND ID from the file.
+        :return: Dictionary with client details (email, client name).
+        """
+        client_row = self.client_list_data[self.client_list_data["FUND ID"] == fund_id]
+
+        if client_row.empty:
+            raise ValueError(f"No client details found for FUND ID: {fund_id}")
+
+        # Extract relevant details
+        client_email = client_row["EMAIL LIST"].iloc[0]
+        client_name = client_row["CLIENT"].iloc[0]
+
+        return {
+            "email": client_email,
+            "client_name": client_name,
+        }
+
+    def attach_files_to_emails(self, selected_date):
+        """
+        Create Outlook emails with files attached for the selected date.
+
+        :param selected_date: Selected date in "yyyy-mm-dd" format.
+        """
+        try:
+            files = self.get_files_for_date(selected_date)
+
+            # Initialize Outlook application
+            outlook = win32.Dispatch("Outlook.Application")
+
+            for file_path in files:
+                file_name = os.path.basename(file_path)
+
+                # Extract FUND ID from the file name
+                fund_id = file_name.split("_")[1]  # Adjust the index if FUND ID placement changes
+
+                # Get client details using the FUND ID
+                client_details = self.get_client_details_by_fund_id(fund_id)
+
+                # Create an email
+                mail = outlook.CreateItem(0)  # Mail item
+                mail.To = client_details["email"]
+                mail.Subject = f"{client_details['client_name']} - {selected_date} Statement"
+                mail.Body = f"Dear {client_details['client_name']},\n\nPlease find the attached statement for {selected_date}.\n\nBest regards,\nYour Team"
+
+                # Attach the file
+                mail.Attachments.Add(file_path)
+
+                # Display the email for review
+                mail.Display()
+
+            messagebox.showinfo("Success", "Emails created successfully for all files.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create emails: {e}")
