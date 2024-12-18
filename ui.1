@@ -6,6 +6,9 @@ import pandas as pd
 from tkcalendar import Calendar
 import os
 
+
+
+from manual_pv_popup import ManualPVPopup
 from email_attachments import EmailAttachmentHandler
 from constants import MAIN_FILE_PATH, CLIENT_LIST_FILE, OUTPUT_FOLDER
 from popup import Popup
@@ -160,7 +163,14 @@ class MainUI:
 
         tk.Button(frame, text="Find File", command=self.find_file).grid(row=2, column=0, padx=10, pady=10)
         tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=2, column=1, padx=10, pady=10)
+        
+        tk.Button(frame, text="Enter PVs Manually", command=self.open_manual_pv_popup).grid(row=7, column=0, padx=10, pady=10, sticky="w")
+        self.manual_pv_status = tk.Label(frame, text="Manual PVs: None", font=("Arial", 10),fg="gray")
+        self.manual_pv_status.grid(row=8, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
+
+
+        
         # Unmatched Trade IDs Label (to the right of the Calendar)
         tk.Label(frame, textvariable=self.unmatched_count_text, font=("Arial", 10)).grid(
             row=1, column=2, padx=20, pady=5, sticky="w")
@@ -169,6 +179,18 @@ class MainUI:
     
         self.unmatched_ids_box = tk.Text(frame, wrap="word", height=5, width=50, state="disabled", bg="#f0f0f0")
         self.unmatched_ids_box.grid(row=1, column=4, columnspan=3, padx=10, pady=5)
+
+
+    def open_manual_pv_popup(self):
+    """Open the Manual PV Entry Pop-Up."""
+    def on_save(manual_pvs):
+        # Merge manual PVs into the main data
+        self.statement_generator.merge_manual_pvs(manual_pvs)
+        self.manual_pv_status.config(text="Manual PVs: Entered", fg="green")
+        messagebox.showinfo("Success", "Manual PVs added successfully.")
+
+    ManualPVPopup(self.root, self.statement_generator.main_data, on_save)
+    
 
     def find_file(self):
         try:
@@ -199,11 +221,15 @@ class MainUI:
     
     
     def run_process_files(self):
-        try:
-            msg = self.statement_generator.process_files()
-            messagebox.showinfo("Success", msg)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+    try:
+        msg = self.statement_generator.process_files()
+        messagebox.showinfo("Success", msg)
+
+        # Reset Manual PV Status
+        self.manual_pv_status.config(text="Manual PVs: None", fg="gray")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
 
     def create_edit_main_file_tab(self):
         frame = ttk.Frame(self.notebook)
