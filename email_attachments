@@ -1,8 +1,5 @@
-# email_attachments.py
-
 import os
 import win32com.client as win32
-import pandas as pd
 from datetime import datetime
 from tkinter import messagebox
 
@@ -12,11 +9,11 @@ class EmailAttachmentHandler:
         """
         Initialize the email handler.
 
-        :param output_folder: Path to the folder containing generated files.
         :param client_list_data: DataFrame containing client list details.
+        :param output_folder: Path to the folder containing generated files.
         """
-        self.output_folder = output_folder  # Use the OUTPUT_FOLDER from constants.py
-        self.client_list_data = client_list_data  # Client list data as a DataFrame
+        self.output_folder = output_folder
+        self.client_list_data = client_list_data
 
     def get_files_for_date(self, selected_date):
         """
@@ -52,7 +49,6 @@ class EmailAttachmentHandler:
         if client_row.empty:
             raise ValueError(f"No client details found for FUND ID: {fund_id}")
 
-        # Extract relevant details
         client_email = client_row["EMAIL LIST"].iloc[0]
         client_name = client_row["CLIENT"].iloc[0]
 
@@ -77,15 +73,16 @@ class EmailAttachmentHandler:
                 file_name = os.path.basename(file_path)
 
                 # Extract FUND ID from the file name
-                fund_id = file_name.split("_")[1]  # Adjust the index if FUND ID placement changes
+                fund_id = file_name.split("_")[1]
 
                 # Get client details using the FUND ID
                 client_details = self.get_client_details_by_fund_id(fund_id)
 
                 # Create an email
-                mail = outlook.CreateItem(0)  # Mail item
+                mail = outlook.CreateItem(0)
                 mail.To = client_details["email"]
-                mail.Subject = f"{client_details['client_name']} - {selected_date} Statement"
+                formatted_date = datetime.strptime(selected_date, "%Y-%m-%d").strftime("%Y%m%d")
+                mail.Subject = f"Valuation: {formatted_date} Daily-{client_details['client_name']} {fund_id}_Lon_IRS"
                 mail.Body = f"Dear {client_details['client_name']},\n\nPlease find the attached statement for {selected_date}.\n\nBest regards,\nYour Team"
 
                 # Attach the file
