@@ -55,6 +55,21 @@ class Processor:
         self.unmatched_count = len(unmatched_trade_ids)  # Store the unmatched count
         self.unmatched_ids = list(unmatched_trade_ids)   # Store the ID's
 
+    def merge_manual_pvs(self, manual_pvs):
+        """
+        Merge manually entered PVs with the main data.
+
+        :param manual_pvs: A dictionary with TRADEIDENTIFIER as keys and PVs as values.
+        """
+        if "TRADEIDENTIFIER" not in self.main_data.columns:
+            raise ValueError("TRADEIDENTIFIER column not found in main data.")
+
+        for trade_id, pv in manual_pvs.items():
+            if trade_id in self.main_data["TRADEIDENTIFIER"].values:
+                self.main_data.loc[self.main_data["TRADEIDENTIFIER"] == trade_id, "PV"] = pv
+            else:
+                print(f"Warning: Trade ID {trade_id} not found in main data.")
+
     def process_files(self):
         """Process the input file and generate statements."""
         if not self.moved_file_path:
