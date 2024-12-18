@@ -1,56 +1,84 @@
 # processor.py
 
+import pandas as pd
 import os
 import shutil
-import pandas as pd
-from datetime import datetime
-
-from constants import (PRIMARY_FOLDER, SECONDARY_FOLDER, MAIN_FILE_PATH, 
-                       TEMPLATE_FILE_PATH, DATE_FORMAT)
+from constants import PRIMARY_FOLDER, SECONDARY_FOLDER, MAIN_FILE_PATH, TEMPLATE_FILE_PATH
 from utilities import calculate_amortization
 from template_filler import fill_template
 
+
 class Processor:
     def __init__(self, main_data, date_picker):
-        self.main_data = main_data
-        self.date_picker = date_picker
-        self.moved_file_path = None
+        self.main_data = main_data  # Loaded main file data
+        self.date_picker = date_picker  # Calendar widget reference
+        self.moved_file_path = None  # Path to the selected moved file
+        self.unmatched_count = 0  # To store unmatched TRADEIDENTIFIER count
+        self.unmatched_ids = [] 
 
     def select_moved_file(self):
+        """Select the moved file based on the date and check in primary and secondary folders."""
         selected_date = self.date_picker.get_date()
-        formatted_date = datetime.strptime(selected_date, "%Y-%m-%d").strftime("%Y-%m-%d")
+        formatted_date = pd.to_datetime(selected_date).strftime("%Y-%m-%d")
         expected_file_name = f"moved_file_{formatted_date}.csv"
 
         primary_path = os.path.join(PRIMARY_FOLDER, expected_file_name)
         if os.path.exists(primary_path):
             self.moved_file_path = primary_path
-            return f"File found: {self.moved_file_path}"
+        else:
+            secondary_path = os.path.join(SECONDARY_FOLDER, expected_file_name)
+            if os.path.exists(secondary_path):
+                shutil.copy(secondary_path, primary_path)
+                self.moved_file_path = primary_path
+            else:
+                raise FileNotFoundError("File not found in either folder.")
 
-        secondary_path = os.path.join(SECONDARY_FOLDER, expected_file_name)
-        if os.path.exists(secondary_path):
-            shutil.copy(secondary_path, primary_path)
-            self.moved_file_path = primary_path
-            return f"File copied to primary folder: {self.moved_file_path}"
+        # Check for unmatched trade IDs
+        self.check_unmatched_trade_ids()
+        return f"File found: {self.moved_file_path}"
 
-        raise FileNotFoundError("File not found in either folder.")
+    def check_unmatched_trade_ids(self):
+        """Compare TRADEIDENTIFIER values between moved file and main file."""
+        if not self.moved_file_path:
+            raise ValueError("Moved file not selected yet.")
+
+        # Load the moved file
+        moved_data = pd.read_csv(self.moved_file_path)
+        moved_data['TRADEIDENTIFIER'] = moved_data['TRADEIDENTIFIER'].astype(str).str[:7]  # First 7 digits
+
+        # Extract first 7 digits of TRADEIDENTIFIER from the main file
+        main_trade_ids = set(self.main_data['TRADEIDENTIFIER'].astype(str).str[:7])
+        moved_trade_ids = set(moved_data['TRADEIDENTIFIER'])
+
+        # Find unmatched trade IDs
+        unmatched_trade_ids = moved_trade_ids - main_trade_ids
+        self.unmatched_count = len(unmatched_trade_ids)  # Store the unmatched count
+        self.unmatched_ids = list(unmatched_trade_ids)   # Store the ID's
 
     def process_files(self):
+        """Process the input file and generate statements."""
         if not self.moved_file_path:
             raise ValueError("Please select a moved file.")
 
         if not os.path.exists(TEMPLATE_FILE_PATH):
             raise FileNotFoundError(f"Template file not found: {TEMPLATE_FILE_PATH}")
 
+        # Load moved file
         moved_data = pd.read_csv(self.moved_file_path)
-        moved_data['TRADEIDENTIFIER'] = moved_data['TRADEIDENTIFIER'].astype(str).str[:7]
+        moved_data['TRADEIDENTIFIER'] = moved_data['TRADEIDENTIFIER'].str[:7]  # Extract first 7 digits
 
+        # Process the main file
         self.main_data['TRADEIDENTIFIER'] = self.main_data['TRADEIDENTIFIER'].astype(str)
-        processed_data = self.main_data.merge(moved_data[['TRADEIDENTIFIER', 'PV']], on='TRADEIDENTIFIER', how='left')
+        processed_data = self.main_data.merge(
+            moved_data[['TRADEIDENTIFIER', 'PV']], on='TRADEIDENTIFIER', how='left'
+        )
         processed_data['PV'] = processed_data['PV'].fillna(0) * -1
 
+        # Selected date
         selected_date_str = self.date_picker.get_date()
-        selected_date = datetime.strptime(selected_date_str, DATE_FORMAT)
+        selected_date = pd.to_datetime(selected_date_str)
 
+        # Apply calculations row by row
         def calculate_row(row):
             if pd.notna(row.get('P&L')) and pd.notna(row.get('TRADE DATE')):
                 start_date = pd.to_datetime(row['TRADE DATE'])
@@ -63,6 +91,7 @@ class Processor:
 
         processed_data[['Adjusted_P&L', 'Combined_Value', 'Bid', 'Offer']] = processed_data.apply(calculate_row, axis=1)
 
+        # Generate statements for each unique FUND ID
         fund_column = "FUND ID"
         if fund_column not in processed_data.columns:
             raise ValueError(f"Column '{fund_column}' not found in processed data.")
