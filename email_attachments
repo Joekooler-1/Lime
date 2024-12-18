@@ -83,7 +83,17 @@ class EmailAttachmentHandler:
                 mail.To = client_details["email"]
                 formatted_date = datetime.strptime(selected_date, "%Y-%m-%d").strftime("%Y%m%d")
                 mail.Subject = f"Valuation: {formatted_date} Daily-{client_details['client_name']} {fund_id}_Lon_IRS"
-                mail.Body = f"Dear {client_details['client_name']},\n\nPlease find the attached statement for {selected_date}.\n\nBest regards,\nYour Team"
+
+                # Create HTML Body
+                mail.HTMLBody = f"""
+                <html>
+                    <body>
+                        <p>Dear {client_details['client_name']},</p>
+                        <p>Please find the attached statement for {selected_date}.</p>
+                        <p>Best regards,<br>Your Team</p>
+                    </body>
+                </html>
+                """
 
                 # Attach the file
                 mail.Attachments.Add(file_path)
