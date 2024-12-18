@@ -1,0 +1,86 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+
+class ManualPVPopup:
+    def __init__(self, parent, main_data, on_save):
+        """
+        Initialize the Manual PV Pop-Up.
+
+        :param parent: The parent window (usually root).
+        :param main_data: The main data DataFrame containing TRADEIDENTIFIERs.
+        :param on_save: Callback function to handle the saving of manual PVs.
+        """
+        self.parent = parent
+        self.main_data = main_data
+        self.on_save = on_save
+
+        self.popup = tk.Toplevel(parent)
+        self.popup.title("Manual PV Entry")
+        self.popup.geometry("500x400")
+
+        self.build_ui()
+
+    def build_ui(self):
+        """Build the UI for the pop-up."""
+        tk.Label(self.popup, text=" CONVERT TO DECIMAL IN EXCEL FIRST Enter PVs for Trade Identifiers:", font=("Arial", 10)).pack(pady=10)
+
+        # Create a Frame for the Table
+        table_frame = ttk.Frame(self.popup)
+        table_frame.pack(pady=10, fill="both", expand=True)
+
+        # Create Columns for Trade ID and PV
+        self.columns = ("TRADEIDENTIFIER", "PV")
+        self.tree = ttk.Treeview(table_frame, columns=self.columns, show="headings", height=15)
+        self.tree.heading("TRADEIDENTIFIER", text="TRADEIDENTIFIER")
+        self.tree.heading("PV", text="PV")
+        self.tree.column("TRADEIDENTIFIER", width=200, anchor="center")
+        self.tree.column("PV", width=100, anchor="center")
+
+        # Add Vertical and Horizontal Scrollbars
+        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        scroll_y.pack(side="right", fill="y")
+        self.tree.configure(yscrollcommand=scroll_y.set)
+
+        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
+        scroll_x.pack(side="bottom", fill="x")
+        self.tree.configure(xscrollcommand=scroll_x.set)
+
+        self.tree.pack(fill="both", expand=True)
+
+        # Prepopulate with Trade Identifiers
+        try:
+            trade_ids = self.main_data["TRADEIDENTIFIER"].dropna().unique()
+            for trade_id in trade_ids:
+                self.tree.insert("", "end", values=(trade_id, ""))
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load Trade Identifiers: {e}")
+
+        # Bind Ctrl+V for bulk paste
+        self.popup.bind("<Control-v>", self.paste_bulk_data)
+
+        # Add Save Button
+        tk.Button(self.popup, text="Save", command=self.save_pvs).pack(pady=10)
+
+    def paste_bulk_data(self, event=None):
+        """Handle bulk pasting of Trade IDs and PVs."""
+        try:
+            clipboard_data = self.popup.clipboard_get()
+            for line in clipboard_data.strip().split("\n"):
+                trade_id, pv = line.split(",")
+                self.tree.insert("", "end", values=(trade_id.strip(), pv.strip()))
+        except Exception as e:
+            messagebox.showerror("Error", f"Invalid data format: {e}")
+
+    def save_pvs(self):
+        """Collect data from the table and call the save callback."""
+        try:
+            manual_pvs = {}
+            for child in self.tree.get_children():
+                trade_id, pv = self.tree.item(child)["values"]
+                if trade_id and pv:  # Ensure both values are present
+                    manual_pvs[trade_id] = float(pv)
+            self.on_save(manual_pvs)
+            self.popup.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save PVs: {e}")
