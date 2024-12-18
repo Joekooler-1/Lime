@@ -27,6 +27,7 @@ class MainUI:
         self.unmatched_ids_text = tk.StringVar(value="")  # Text for unmatched IDs display
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True)
+        self.email_handler = EmailAttachmentHandler(client_list_data=self.client_list_data,output_folder=OUTPUT_FOLDER,sender_email="add")
 
         self.create_tabs()
 
@@ -163,6 +164,7 @@ class MainUI:
 
         tk.Button(frame, text="Find File", command=self.find_file).grid(row=2, column=0, padx=10, pady=10)
         tk.Button(frame, text="Process Files", command=self.run_process_files).grid(row=2, column=1, padx=10, pady=10)
+        tk.Button(frame, text="Display Emails", command=self.send_emails).grid(row=2, column=2, padx=10, pady=10)
         
         tk.Button(frame, text="Enter PVs Manually", command=self.open_manual_pv_popup).grid(row=7, column=0, padx=10, pady=10, sticky="w")
         self.manual_pv_status = tk.Label(frame, text="Manual PVs: None", font=("Arial", 10),fg="gray")
@@ -229,6 +231,13 @@ class MainUI:
         self.manual_pv_status.config(text="Manual PVs: None", fg="gray")
     except Exception as e:
         messagebox.showerror("Error", str(e))
+
+    def send_emails(self):
+        try:
+            selected_date = self.date_picker.get_date()
+            self.email_handler.attach_files_to_emails(selected_date)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
 
     def create_edit_main_file_tab(self):
