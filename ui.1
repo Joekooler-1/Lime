@@ -184,8 +184,8 @@ class MainUI:
 
 
     def open_manual_pv_popup(self):
-    """Open the Manual PV Entry Pop-Up."""
-    def on_save(manual_pvs):
+        """Open the Manual PV Entry Pop-Up."""
+        def on_save(manual_pvs):
         # Merge manual PVs into the main data
         self.statement_generator.merge_manual_pvs(manual_pvs)
         self.manual_pv_status.config(text="Manual PVs: Entered", fg="green")
@@ -266,7 +266,7 @@ class MainUI:
         ttk.Button(button_frame, text="Reload File", command=self.reload_client_list).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Add Client", command=self.add_new_client).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Edit Client", command=self.edit_selected_client).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Open DL File", command=open_client_list_file).pack(side="left", padx=5)  # Open DL
+        ttk.Button(button_frame, text="Open DL File", command=self.open_client_list_file).pack(side="left", padx=5)  # Open DL
 
         self.create_client_list_treeview(frame)
 
