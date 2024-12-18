@@ -72,22 +72,27 @@ class Processor:
 
     def process_files(self):
         """Process the input file and generate statements."""
-        if not self.moved_file_path:
-            raise ValueError("Please select a moved file.")
+        # Check if manual PVs or a moved file is available
+        if not self.moved_file_path and "PV" not in self.main_data.columns:
+            raise ValueError("Please select a moved file or add manual PVs.")
 
+        # Ensure the template file exists
         if not os.path.exists(TEMPLATE_FILE_PATH):
             raise FileNotFoundError(f"Template file not found: {TEMPLATE_FILE_PATH}")
 
-        # Load moved file
-        moved_data = pd.read_csv(self.moved_file_path)
-        moved_data['TRADEIDENTIFIER'] = moved_data['TRADEIDENTIFIER'].str[:7]  # Extract first 7 digits
+        if self.moved_file_path:
+            # Load moved file and merge PVs
+            moved_data = pd.read_csv(self.moved_file_path)
+            moved_data['TRADEIDENTIFIER'] = moved_data['TRADEIDENTIFIER'].str[:7]  # Extract first 7 digits
+            self.main_data['TRADEIDENTIFIER'] = self.main_data['TRADEIDENTIFIER'].astype(str)
+            self.main_data = self.main_data.merge(
+                moved_data[['TRADEIDENTIFIER', 'PV']], on='TRADEIDENTIFIER', how='left'
+            )
+            self.main_data['PV'] = self.main_data['PV'].fillna(0) * -1
 
-        # Process the main file
-        self.main_data['TRADEIDENTIFIER'] = self.main_data['TRADEIDENTIFIER'].astype(str)
-        processed_data = self.main_data.merge(
-            moved_data[['TRADEIDENTIFIER', 'PV']], on='TRADEIDENTIFIER', how='left'
-        )
-        processed_data['PV'] = processed_data['PV'].fillna(0) * -1
+        # Ensure PVs exist for processing
+        if "PV" not in self.main_data.columns or self.main_data["PV"].isna().all():
+            raise ValueError("No PVs available for processing. Please add manual PVs or select a moved file.")
 
         # Selected date
         selected_date_str = self.date_picker.get_date()
@@ -104,16 +109,16 @@ class Processor:
                 return pd.Series([adjusted_pnl, combined_value, bid, offer])
             return pd.Series([None, None, None, None])
 
-        processed_data[['Adjusted_P&L', 'Combined_Value', 'Bid', 'Offer']] = processed_data.apply(calculate_row, axis=1)
+        self.main_data[['Adjusted_P&L', 'Combined_Value', 'Bid', 'Offer']] = self.main_data.apply(calculate_row, axis=1)
 
         # Generate statements for each unique FUND ID
         fund_column = "FUND ID"
-        if fund_column not in processed_data.columns:
+        if fund_column not in self.main_data.columns:
             raise ValueError(f"Column '{fund_column}' not found in processed data.")
 
-        unique_funds = processed_data[fund_column].dropna().unique()
+        unique_funds = self.main_data[fund_column].dropna().unique()
         for fund_id in unique_funds:
-            client_data = processed_data[processed_data[fund_column] == fund_id]
+            client_data = self.main_data[self.main_data[fund_column] == fund_id]
             fill_template(selected_date_str, fund_id, client_data)
 
         return "Statements generated successfully."
