@@ -69,6 +69,6 @@ def fill_template(date_str, fund_id, data):
     formatted_date = dt.strftime("%Y%m%d")
     excel_output_path = os.path.join(
         OUTPUT_FOLDER,
-        f"VAL-{formatted_date})-DAILY_CLIENT {fund_id}_Lon_IRS.xlsx"
+        f"VAL-{formatted_date}-DAILY_CLIENT {fund_id}_Lon_IRS.xlsx"
     )
     workbook.save(excel_output_path)
