@@ -23,64 +23,69 @@ class ManualPVPopup:
 
     def build_ui(self):
         """Build the UI for the pop-up."""
-        tk.Label(self.popup, text=" CONVERT TO DECIMAL IN EXCEL FIRST Enter PVs for Trade Identifiers:", font=("Arial", 10)).pack(pady=10)
+        tk.Label(self.popup, text="Enter PVs for Trade Identifiers:", font=("Arial", 12)).pack(pady=10)
 
-        # Create a Frame for the Table
-        table_frame = ttk.Frame(self.popup)
-        table_frame.pack(pady=10, fill="both", expand=True)
+        # Create a Frame for the Main Layout
+        main_frame = ttk.Frame(self.popup)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Create Columns for Trade ID and PV
-        self.columns = ("TRADEIDENTIFIER", "PV")
-        self.tree = ttk.Treeview(table_frame, columns=self.columns, show="headings", height=15)
-        self.tree.heading("TRADEIDENTIFIER", text="TRADEIDENTIFIER")
-        self.tree.heading("PV", text="PV")
-        self.tree.column("TRADEIDENTIFIER", width=200, anchor="center")
-        self.tree.column("PV", width=100, anchor="center")
+        # Left Frame for Trade Identifiers
+        left_frame = ttk.Frame(main_frame)
+        left_frame.pack(side="left", fill="y", padx=10)
 
-        # Add Vertical and Horizontal Scrollbars
-        scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        scroll_y.pack(side="right", fill="y")
-        self.tree.configure(yscrollcommand=scroll_y.set)
+        tk.Label(left_frame, text="Trade Identifiers", font=("Arial", 10)).pack(anchor="w", pady=5)
 
-        scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
-        scroll_x.pack(side="bottom", fill="x")
-        self.tree.configure(xscrollcommand=scroll_x.set)
+        self.trade_id_listbox = tk.Listbox(left_frame, height=20, width=25)
+        self.trade_id_listbox.pack(fill="y", expand=True)
 
-        self.tree.pack(fill="both", expand=True)
-
-        # Prepopulate with Trade Identifiers
+        # Populate Trade Identifiers
         try:
             trade_ids = self.main_data["TRADEIDENTIFIER"].dropna().unique()
             for trade_id in trade_ids:
-                self.tree.insert("", "end", values=(trade_id, ""))
+                self.trade_id_listbox.insert(tk.END, trade_id)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load Trade Identifiers: {e}")
 
-        # Bind Ctrl+V for bulk paste
-        self.popup.bind("<Control-v>", self.paste_bulk_data)
+        # Right Frame for PV Entry
+        right_frame = ttk.Frame(main_frame)
+        right_frame.pack(side="left", fill="both", expand=True, padx=10)
+
+        tk.Label(right_frame, text="PV Values", font=("Arial", 10)).pack(anchor="w", pady=5)
+
+        self.pv_entries = {}
+
+        self.entry_frame = ttk.Frame(right_frame)
+        self.entry_frame.pack(fill="both", expand=True)
+
+        # Create Entry Widgets for each Trade Identifier
+        for trade_id in trade_ids:
+            row_frame = ttk.Frame(self.entry_frame)
+            row_frame.pack(fill="x", pady=2)
+
+            label = ttk.Label(row_frame, text=trade_id, width=20, anchor="w")
+            label.pack(side="left", padx=5)
+
+            entry = ttk.Entry(row_frame)
+            entry.pack(side="left", fill="x", expand=True, padx=5)
+
+            self.pv_entries[trade_id] = entry
 
         # Add Save Button
-        tk.Button(self.popup, text="Save", command=self.save_pvs).pack(pady=10)
-
-    def paste_bulk_data(self, event=None):
-        """Handle bulk pasting of Trade IDs and PVs."""
-        try:
-            clipboard_data = self.popup.clipboard_get()
-            for line in clipboard_data.strip().split("\n"):
-                trade_id, pv = line.split(",")
-                self.tree.insert("", "end", values=(trade_id.strip(), pv.strip()))
-        except Exception as e:
-            messagebox.showerror("Error", f"Invalid data format: {e}")
+        save_button = tk.Button(self.popup, text="Save", command=self.save_pvs)
+        save_button.pack(pady=10)
 
     def save_pvs(self):
-        """Collect data from the table and call the save callback."""
+        """Collect data from the entry fields and call the save callback."""
         try:
             manual_pvs = {}
-            for child in self.tree.get_children():
-                trade_id, pv = self.tree.item(child)["values"]
-                if trade_id and pv:  # Ensure both values are present
-                    manual_pvs[trade_id] = float(pv)
+            for trade_id, entry in self.pv_entries.items():
+                pv_value = entry.get()
+                if pv_value:  # Ensure PV value is not empty
+                    manual_pvs[trade_id] = float(pv_value)
+
             self.on_save(manual_pvs)
             self.popup.destroy()
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numeric PV values.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save PVs: {e}")
