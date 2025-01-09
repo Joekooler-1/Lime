@@ -28,12 +28,15 @@ def fill_template(date_str, fund_id, data):
     sheet.title = f"BMO - {fund_id}"
 
     headers = [sheet.cell(row=18, column=col).value for col in range(2, sheet.max_column + 1)]
-    start_row = 18
+    start_row = 19
 
     center_alignment = Alignment(horizontal="center", vertical="center")
     default_font = Font(size=8)
-    currency_format = "#,##0.00"
+    currency_format = "#,##0"
     percentage_format = "0.000%"
+
+    
+    no_border = Border( )
 
     current_row = start_row
     for _, row in data.iterrows():
@@ -50,6 +53,8 @@ def fill_template(date_str, fund_id, data):
                 cell.number_format = currency_format
             elif header in ["Pay Rate", "BID", "OFFER"]:
                 cell.number_format = percentage_format
+            elif header == "Trade ID":
+                cell.number_format = "0"
         current_row += 1
 
     formatted_date = dt.strftime("%Y%m%d")
