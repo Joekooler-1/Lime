@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 from openpyxl import load_workbook
@@ -21,6 +20,16 @@ def fill_template(date_str, fund_id, data):
     if hasattr(workbook, "remove_external_links"):
         workbook.remove_external_links()
 
+    # Define styles
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    default_font = Font(size=8)
+    currency_format = "#,##0"
+    percentage_format = "0.000%"
+    no_border = Border()  # Simplified no-border style
+
+    # Disable gridlines
+    sheet.sheet_view.showGridLines = False
+
     # Fill predefined cells
     sheet["C12"] = f"DAILY_BMO - {fund_id} Lon_IRS"
     sheet["C14"] = Templatec14_date
@@ -29,12 +38,6 @@ def fill_template(date_str, fund_id, data):
     # Extract headers and start row
     headers = [sheet.cell(row=18, column=col).value for col in range(2, sheet.max_column + 1)]
     start_row = 19
-
-    # Define styles
-    center_alignment = Alignment(horizontal="center", vertical="center")
-    default_font = Font(size=8)
-    currency_format = "#,##0"
-    percentage_format = "0.000%"
 
     current_row = start_row
     for _, row in data.iterrows():
@@ -52,9 +55,18 @@ def fill_template(date_str, fund_id, data):
                     pass  # Keep value as-is if it's not a valid date
 
             cell = sheet.cell(row=current_row + 1, column=col_idx + 2)
+
+            # Ensure Trade ID is numeric
+            if header == "Trade ID":
+                try:
+                    value = int(value)  # Convert to integer if possible
+                except (ValueError, TypeError):
+                    pass  # Leave as-is if not a valid number
+
             cell.value = value
             cell.alignment = center_alignment
             cell.font = default_font
+            cell.border = no_border  # Explicitly clear any borders
 
             # Apply formatting based on header
             if header in ["Notional", "Notional 2"]:
@@ -62,11 +74,11 @@ def fill_template(date_str, fund_id, data):
             elif header in ["Pay Rate", "BID", "OFFER"]:
                 cell.number_format = percentage_format
             elif header == "Trade ID":
-                cell.number_format = "0"
+                cell.number_format = "0"  # Set format for Trade ID
         current_row += 1
 
-    # Format output file name and save workbook
-    formatted_date = dt.strftime("%Y%m%d")
+    # Use the date from date_str for the file name
+    formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y%m%d")
     excel_output_path = os.path.join(
         OUTPUT_FOLDER,
         f"VAL-{formatted_date}-DAILY_CLIENT {fund_id}_Lon_IRS.xlsx"
